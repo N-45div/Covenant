@@ -13,6 +13,7 @@ const inputPath = process.env.COVENANT_DEPLOYMENT_IN ?? defaultDeploymentPath(ne
 const deployment = JSON.parse(await readFile(inputPath, "utf8")) as CovenantDeployment;
 const connection = requestedNetwork ? await network.create(requestedNetwork) : await network.create();
 const { viem } = connection;
+const publicClient = await viem.getPublicClient();
 const wallets = await viem.getWalletClients();
 const caller = wallets.find(
   (wallet) => getAddress(wallet.account.address) === getAddress(deployment.demo.authorizedExecutor)
@@ -34,7 +35,7 @@ const token = await viem.getContractAt("MockToken", deployment.contracts.demoInp
 const amount = parseUnits("100", 18);
 const before = (await token.read.balanceOf([caller.account.address])) as bigint;
 
-await routerAsExecutor.write.propose([
+const hash = await routerAsExecutor.write.propose([
   deployment.contracts.covenantVault,
   caller.account.address,
   {
@@ -48,6 +49,7 @@ await routerAsExecutor.write.propose([
     deadline: 0,
   },
 ]);
+await publicClient.waitForTransactionReceipt({ hash });
 
 const nextProposalId = (await router.read.nextProposalId()) as bigint;
 const proposalId = nextProposalId - 1n;

@@ -1,0 +1,23 @@
+{
+  "network": "arbitrumSepolia",
+  "chainId": 421614,
+  "deployer": "0xf8798fbd2a6617db40efbedbdd85124cf11d2cb5",
+  "createdAt": "2026-05-31T07:59:44.885Z",
+  "policyId": "1",
+  "contracts": {
+    "policyEngine": "0xd06ea0b9ad8935df0e823555f0433604b880711d",
+    "covenantReceipt": "0x59e0f69ff6d25b5cee757c874adadc42e9857f2a",
+    "actionRouter": "0x93995825ca13fbbf74f6876480bf7565f33a8717",
+    "covenantFactory": "0x9fd29493a62ff0415512cc6824e21288e633401e",
+    "covenantVault": "0x5F24c7Ff228a641E64e695A08Bf805438e4E04Df",
+    "demoInputToken": "0x79170986f08246c10a282c48d01f210af028ab1c",
+    "demoOutputToken": "0x2436ca4bbca2b11ccb1156b0655fceaac0a06d74"
+  },
+  "demo": {
+    "authorizedExecutor": "0xf8798fbd2a6617db40efbedbdd85124cf11d2cb5",
+    "action": "0x7265626c",
+    "vaultSeedAmount": "2000000000000000000000",
+    "perActionCap": "1000000000000000000000",
+    "humanApprovalThreshold": "500000000000000000000"
+  }
+}
