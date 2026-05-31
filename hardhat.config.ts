@@ -22,6 +22,12 @@ export default defineConfig({
       url: configVariable("ARBITRUM_SEPOLIA_RPC_URL"),
       accounts: [configVariable("DEPLOYER_PRIVATE_KEY")]
     },
+    mantleSepolia: {
+      type: "http",
+      chainType: "l1",
+      url: configVariable("MANTLE_SEPOLIA_RPC_URL"),
+      accounts: [configVariable("DEPLOYER_PRIVATE_KEY")]
+    },
     robinhoodTestnet: {
       type: "http",
       chainType: "l1",

@@ -1,6 +1,7 @@
 import Fastify from "fastify";
 import { registerPassportRoutes } from "./routes/passports.js";
 import { registerProposalRoutes } from "./routes/proposals.js";
+import { registerProofRoutes } from "./routes/proofs.js";
 import { registerSystemRoutes } from "./routes/system.js";
 
 export function buildServer() {
@@ -9,6 +10,7 @@ export function buildServer() {
   void app.register(registerSystemRoutes);
   void app.register(registerPassportRoutes);
   void app.register(registerProposalRoutes);
+  void app.register(registerProofRoutes);
 
   return app;
 }

@@ -1,7 +1,8 @@
+import arbitrumSepoliaDeployment from "../../../../deployments/arbitrumSepolia.json" with { type: "json" };
 import type { Address, ChainKey } from "../../../../packages/policy/src/index.js";
 
 export interface DeploymentConfig {
-  chainKey: ChainKey;
+  chainKey: ChainKey | "mantle-sepolia";
   chainId: number;
   name: string;
   rpcEnv: string;
@@ -27,9 +28,27 @@ export const deployments: DeploymentConfig[] = [
     name: "Arbitrum Sepolia",
     rpcEnv: "ARBITRUM_SEPOLIA_RPC_URL",
     explorerUrl: "https://sepolia.arbiscan.io",
-    contracts: {},
+    contracts: {
+      covenantVault: arbitrumSepoliaDeployment.contracts.covenantVault as Address,
+      policyEngine: arbitrumSepoliaDeployment.contracts.policyEngine as Address,
+      actionRouter: arbitrumSepoliaDeployment.contracts.actionRouter as Address,
+      covenantReceipt: arbitrumSepoliaDeployment.contracts.covenantReceipt as Address
+    },
     features: {
       primary: true,
+      tokenizedAssetDemo: true,
+      agentExecutors: true
+    }
+  },
+  {
+    chainKey: "mantle-sepolia",
+    chainId: 5003,
+    name: "Mantle Sepolia",
+    rpcEnv: "MANTLE_SEPOLIA_RPC_URL",
+    explorerUrl: "https://explorer.sepolia.mantle.xyz",
+    contracts: {},
+    features: {
+      primary: false,
       tokenizedAssetDemo: true,
       agentExecutors: true
     }
@@ -48,4 +67,3 @@ export const deployments: DeploymentConfig[] = [
     }
   }
 ];
-
