@@ -41,7 +41,8 @@ export async function deployCovenantStack(
   outputPath?: string
 ): Promise<CovenantDeployment> {
   const publicClient = await viem.getPublicClient();
-  const [deployer, executor] = await viem.getWalletClients();
+  const [deployer, secondaryExecutor] = await viem.getWalletClients();
+  const executor = secondaryExecutor ?? deployer;
   const chainId = await publicClient.getChainId();
 
   const policyEngine = await viem.deployContract("PolicyEngine");
