@@ -15,6 +15,6 @@
     "packages/**/*.ts",
     "contracts/**/*.ts",
     "hardhat.config.ts"
-  ]
+  ],
+  "exclude": ["apps/web"]
 }
-
