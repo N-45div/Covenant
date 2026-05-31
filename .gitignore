@@ -2,6 +2,7 @@ node_modules/
 dist/
 coverage/
 .cache/
+.next/
 .env
 .env.local
 artifacts/
