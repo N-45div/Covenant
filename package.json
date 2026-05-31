@@ -1,0 +1,27 @@
+{
+  "name": "covenant",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "dev:api": "tsx apps/api/src/server.ts",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "compile:contracts": "XDG_CACHE_HOME=$PWD/.cache hardhat compile"
+  },
+  "dependencies": {
+    "@nomicfoundation/hardhat-viem": "^3.0.0",
+    "dotenv": "^16.4.7",
+    "fastify": "^5.2.1",
+    "hardhat": "^3.0.0",
+    "viem": "^2.23.7",
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.5",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.3",
+    "vitest": "^2.1.8"
+  }
+}
