@@ -26,6 +26,16 @@ library CovenantTypes {
         uint256 amountCap;
     }
 
+    struct PolicyParams {
+        address[] inputAssets;
+        address[] outputAssets;
+        ActionLimit[] actionLimits;
+        uint16 minOutputBps;
+        uint64 expiresAt;
+        uint64 cooldownSeconds;
+        uint256 humanApprovalThreshold;
+    }
+
     struct PolicyConfig {
         address owner;
         bool active;

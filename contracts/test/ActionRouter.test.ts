@@ -30,8 +30,12 @@ describe("ActionRouter", async () => {
     ]);
     await engine.write.setExecutionRecorder([1n, router.address, true]);
 
-    const vault = await viem.deployContract("CovenantVault", [owner.account.address, router.address, 1n]);
-    await vault.write.setExecutor([executor.account.address, true]);
+    const vault = await viem.deployContract("CovenantVault", [
+      owner.account.address,
+      router.address,
+      1n,
+      executor.account.address,
+    ]);
     await tokenA.write.mint([owner.account.address, parseUnits("2000", 18)]);
     await tokenA.write.approve([vault.address, parseUnits("2000", 18)]);
     await vault.write.deposit([tokenA.address, parseUnits("2000", 18)]);

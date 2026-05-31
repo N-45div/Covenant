@@ -1,6 +1,6 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
-import { parseUnits, zeroAddress } from "viem";
+import { getAddress, parseUnits, zeroAddress } from "viem";
 
 const REBALANCE = "0x7265626c";
 
@@ -17,6 +17,7 @@ export interface CovenantDeployment {
     policyEngine: `0x${string}`;
     covenantReceipt: `0x${string}`;
     actionRouter: `0x${string}`;
+    covenantFactory: `0x${string}`;
     covenantVault: `0x${string}`;
     demoInputToken: `0x${string}`;
     demoOutputToken: `0x${string}`;
@@ -28,6 +29,10 @@ export interface CovenantDeployment {
     perActionCap: string;
     humanApprovalThreshold: string;
   };
+}
+
+interface PolicyConfigRead {
+  owner: `0x${string}`;
 }
 
 export async function deployCovenantStack(
@@ -43,6 +48,7 @@ export async function deployCovenantStack(
   const receipt = await viem.deployContract("CovenantReceipt", [zeroAddress]);
   const router = await viem.deployContract("ActionRouter", [policyEngine.address, receipt.address]);
   await receipt.write.setRouter([router.address]);
+  const factory = await viem.deployContract("CovenantFactory", [policyEngine.address, router.address]);
 
   const inputToken = await viem.deployContract("MockToken", ["Demo Tokenized USD", "dtUSD"]);
   const outputToken = await viem.deployContract("MockToken", ["Demo Tokenized Bill", "dtBILL"]);
@@ -51,19 +57,25 @@ export async function deployCovenantStack(
   const perActionCap = parseUnits("1000", 18);
   const humanApprovalThreshold = parseUnits("500", 18);
 
-  await policyEngine.write.createPolicy([
-    [inputToken.address],
-    [outputToken.address],
-    [{ action: REBALANCE, amountCap: perActionCap }],
-    9_800,
-    Number(latestBlock.timestamp + 86_400n),
-    0,
-    humanApprovalThreshold,
+  await factory.write.createCovenant([
+    {
+      inputAssets: [inputToken.address],
+      outputAssets: [outputToken.address],
+      actionLimits: [{ action: REBALANCE, amountCap: perActionCap }],
+      minOutputBps: 9_800,
+      expiresAt: Number(latestBlock.timestamp + 86_400n),
+      cooldownSeconds: 0,
+      humanApprovalThreshold,
+    },
+    executor.account.address,
   ]);
-  await policyEngine.write.setExecutionRecorder([1n, router.address, true]);
 
-  const vault = await viem.deployContract("CovenantVault", [deployer.account.address, router.address, 1n]);
-  await vault.write.setExecutor([executor.account.address, true]);
+  const vaultAddress = (await factory.read.vaultOf([deployer.account.address, 0n])) as `0x${string}`;
+  const vault = await viem.getContractAt("CovenantVault", vaultAddress);
+  const policy = (await policyEngine.read.policy([1n])) as PolicyConfigRead;
+  if (getAddress(policy.owner) !== getAddress(deployer.account.address)) {
+    throw new Error("Factory deployment did not assign policy ownership to deployer");
+  }
   await inputToken.write.mint([deployer.account.address, vaultSeedAmount]);
   await inputToken.write.approve([vault.address, vaultSeedAmount]);
   await vault.write.deposit([inputToken.address, vaultSeedAmount]);
@@ -78,6 +90,7 @@ export async function deployCovenantStack(
       policyEngine: policyEngine.address,
       covenantReceipt: receipt.address,
       actionRouter: router.address,
+      covenantFactory: factory.address,
       covenantVault: vault.address,
       demoInputToken: inputToken.address,
       demoOutputToken: outputToken.address,
@@ -106,4 +119,3 @@ export async function writeDeployment(path: string, deployment: CovenantDeployme
 export function defaultDeploymentPath(networkName: string) {
   return join("deployments", `${networkName}.json`);
 }
-

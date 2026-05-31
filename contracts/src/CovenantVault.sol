@@ -27,11 +27,16 @@ contract CovenantVault {
         _;
     }
 
-    constructor(address initialOwner, address initialRouter, uint256 initialPolicyId) {
+    constructor(address initialOwner, address initialRouter, uint256 initialPolicyId, address initialExecutor) {
         if (initialOwner == address(0) || initialRouter == address(0)) revert InvalidAddress();
         owner = initialOwner;
         router = initialRouter;
         policyId = initialPolicyId;
+
+        if (initialExecutor != address(0)) {
+            authorizedExecutor[initialExecutor] = true;
+            emit ExecutorSet(initialExecutor, true);
+        }
     }
 
     function setExecutor(address executor, bool allowed) external onlyOwner {
@@ -57,4 +62,3 @@ contract CovenantVault {
         emit RoutedTransfer(token, to, amount);
     }
 }
-

@@ -31,6 +31,7 @@ contract PolicyEngine {
     error InvalidAmountCap();
     error InvalidBps();
     error InvalidExpiry();
+    error InvalidOwner();
     error PolicyNotFound();
     error NotPolicyOwner();
     error NotExecutionRecorder();
@@ -51,11 +52,54 @@ contract PolicyEngine {
         uint64 cooldownSeconds,
         uint256 humanApprovalThreshold
     ) external returns (uint256 policyId) {
+        return _createPolicy(
+            msg.sender,
+            address(0),
+            inputAssets,
+            outputAssets,
+            actionLimits,
+            minOutputBps,
+            expiresAt,
+            cooldownSeconds,
+            humanApprovalThreshold
+        );
+    }
+
+    function createPolicyFor(
+        address owner,
+        address recorder,
+        CovenantTypes.PolicyParams calldata params
+    ) external returns (uint256 policyId) {
+        return _createPolicy(
+            owner,
+            recorder,
+            params.inputAssets,
+            params.outputAssets,
+            params.actionLimits,
+            params.minOutputBps,
+            params.expiresAt,
+            params.cooldownSeconds,
+            params.humanApprovalThreshold
+        );
+    }
+
+    function _createPolicy(
+        address owner,
+        address recorder,
+        address[] calldata inputAssets,
+        address[] calldata outputAssets,
+        CovenantTypes.ActionLimit[] calldata actionLimits,
+        uint16 minOutputBps,
+        uint64 expiresAt,
+        uint64 cooldownSeconds,
+        uint256 humanApprovalThreshold
+    ) private returns (uint256 policyId) {
+        if (owner == address(0)) revert InvalidOwner();
         _validatePolicyShape(inputAssets, outputAssets, actionLimits, minOutputBps, expiresAt);
 
         policyId = nextPolicyId++;
         CovenantTypes.PolicyConfig storage config = _policies[policyId];
-        config.owner = msg.sender;
+        config.owner = owner;
         config.active = true;
         config.expiresAt = expiresAt;
         config.cooldownSeconds = cooldownSeconds;
@@ -72,7 +116,12 @@ contract PolicyEngine {
             actionAmountCap[policyId][actionLimits[i].action] = actionLimits[i].amountCap;
         }
 
-        emit PolicyCreated(policyId, msg.sender);
+        if (recorder != address(0)) {
+            executionRecorder[policyId][recorder] = true;
+            emit ExecutionRecorderSet(policyId, recorder, true);
+        }
+
+        emit PolicyCreated(policyId, owner);
     }
 
     function policy(uint256 policyId) external view returns (CovenantTypes.PolicyConfig memory) {
