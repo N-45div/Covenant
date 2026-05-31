@@ -1,10 +1,12 @@
 import Fastify from "fastify";
+import { registerPassportRoutes } from "./routes/passports.js";
 import { registerSystemRoutes } from "./routes/system.js";
 
 export function buildServer() {
   const app = Fastify({ logger: true });
 
   void app.register(registerSystemRoutes);
+  void app.register(registerPassportRoutes);
 
   return app;
 }
