@@ -57,9 +57,9 @@ export class ChainProofService {
       rpcUrls: { default: { http: [rpcUrl] } }
     });
     const client = createPublicClient({ chain, transport: http(rpcUrl) });
-    const events = await indexCovenantEvents(client, deployment, { fromBlock: 0n });
+    const fromBlock = deployment.startBlock ? BigInt(deployment.startBlock) : 0n;
+    const events = await indexCovenantEvents(client, deployment, { fromBlock });
     this.#cache.set(network, events);
     return events;
   }
 }
-

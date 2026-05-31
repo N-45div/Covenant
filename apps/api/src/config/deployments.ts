@@ -1,4 +1,5 @@
 import arbitrumSepoliaDeployment from "../../../../deployments/arbitrumSepolia.json" with { type: "json" };
+import mantleSepoliaDeployment from "../../../../deployments/mantleSepolia.json" with { type: "json" };
 import type { Address, ChainKey } from "../../../../packages/policy/src/index.js";
 
 export interface DeploymentConfig {
@@ -46,7 +47,12 @@ export const deployments: DeploymentConfig[] = [
     name: "Mantle Sepolia",
     rpcEnv: "MANTLE_SEPOLIA_RPC_URL",
     explorerUrl: "https://explorer.sepolia.mantle.xyz",
-    contracts: {},
+    contracts: {
+      covenantVault: mantleSepoliaDeployment.contracts.covenantVault as Address,
+      policyEngine: mantleSepoliaDeployment.contracts.policyEngine as Address,
+      actionRouter: mantleSepoliaDeployment.contracts.actionRouter as Address,
+      covenantReceipt: mantleSepoliaDeployment.contracts.covenantReceipt as Address
+    },
     features: {
       primary: false,
       tokenizedAssetDemo: true,

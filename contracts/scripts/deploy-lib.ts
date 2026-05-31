@@ -12,6 +12,7 @@ export interface CovenantDeployment {
   chainId: number;
   deployer: `0x${string}`;
   createdAt: string;
+  startBlock?: string;
   policyId: string;
   contracts: {
     policyEngine: `0x${string}`;
@@ -44,11 +45,12 @@ export async function deployCovenantStack(
   const [deployer, secondaryExecutor] = await viem.getWalletClients();
   const executor = secondaryExecutor ?? deployer;
   const chainId = await publicClient.getChainId();
+  const startBlock = await publicClient.getBlockNumber();
 
   const policyEngine = await viem.deployContract("PolicyEngine");
   const receipt = await viem.deployContract("CovenantReceipt", [zeroAddress]);
   const router = await viem.deployContract("ActionRouter", [policyEngine.address, receipt.address]);
-  await receipt.write.setRouter([router.address]);
+  await waitFor(publicClient, await receipt.write.setRouter([router.address]));
   const factory = await viem.deployContract("CovenantFactory", [policyEngine.address, router.address]);
 
   const inputToken = await viem.deployContract("MockToken", ["Demo Tokenized USD", "dtUSD"]);
@@ -58,7 +60,7 @@ export async function deployCovenantStack(
   const perActionCap = parseUnits("1000", 18);
   const humanApprovalThreshold = parseUnits("500", 18);
 
-  await factory.write.createCovenant([
+  await waitFor(publicClient, await factory.write.createCovenant([
     {
       inputAssets: [inputToken.address],
       outputAssets: [outputToken.address],
@@ -69,7 +71,7 @@ export async function deployCovenantStack(
       humanApprovalThreshold,
     },
     executor.account.address,
-  ]);
+  ]));
 
   const vaultAddress = (await factory.read.vaultOf([deployer.account.address, 0n])) as `0x${string}`;
   const vault = await viem.getContractAt("CovenantVault", vaultAddress);
@@ -77,15 +79,16 @@ export async function deployCovenantStack(
   if (getAddress(policy.owner) !== getAddress(deployer.account.address)) {
     throw new Error("Factory deployment did not assign policy ownership to deployer");
   }
-  await inputToken.write.mint([deployer.account.address, vaultSeedAmount]);
-  await inputToken.write.approve([vault.address, vaultSeedAmount]);
-  await vault.write.deposit([inputToken.address, vaultSeedAmount]);
+  await waitFor(publicClient, await inputToken.write.mint([deployer.account.address, vaultSeedAmount]));
+  await waitFor(publicClient, await inputToken.write.approve([vault.address, vaultSeedAmount]));
+  await waitFor(publicClient, await vault.write.deposit([inputToken.address, vaultSeedAmount]));
 
   const deployment: CovenantDeployment = {
     network: networkName,
     chainId,
     deployer: deployer.account.address,
     createdAt: new Date().toISOString(),
+    startBlock: startBlock.toString(),
     policyId: "1",
     contracts: {
       policyEngine: policyEngine.address,
@@ -119,4 +122,11 @@ export async function writeDeployment(path: string, deployment: CovenantDeployme
 
 export function defaultDeploymentPath(networkName: string) {
   return join("deployments", `${networkName}.json`);
+}
+
+async function waitFor(
+  publicClient: Awaited<ReturnType<ViemManager["getPublicClient"]>>,
+  hash: `0x${string}`
+) {
+  await publicClient.waitForTransactionReceipt({ hash });
 }

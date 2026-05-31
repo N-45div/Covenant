@@ -11,11 +11,11 @@ describe("proof api", () => {
     expect(response.json().contracts.actionRouter).toBe(deployment.contracts.actionRouter);
   });
 
-  it("rejects missing deployment networks", async () => {
+  it("serves Mantle deployment artifacts", async () => {
     const app = buildServer();
     const response = await app.inject({ method: "GET", url: "/deployments/mantleSepolia" });
 
-    expect(response.statusCode).toBe(404);
+    expect(response.statusCode).toBe(200);
+    expect(response.json().chainId).toBe(5003);
   });
 });
-

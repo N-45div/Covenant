@@ -1,0 +1,24 @@
+{
+  "network": "mantleSepolia",
+  "chainId": 5003,
+  "deployer": "0xf8798fbd2a6617db40efbedbdd85124cf11d2cb5",
+  "createdAt": "2026-05-31T13:03:13.051Z",
+  "startBlock": "39343900",
+  "policyId": "1",
+  "contracts": {
+    "policyEngine": "0xc2bd321d88c509ec95249ab8b8d5ecb5bf5d8029",
+    "covenantReceipt": "0xc6234816f981c0bc8e8fb48ba6ff9fb864212f3c",
+    "actionRouter": "0x4372222b90612bcd37e09452052de5b44dfbc10c",
+    "covenantFactory": "0x367a53a6728771e66f9e430932d7fa75b446fa0a",
+    "covenantVault": "0x1b87a0Ee2336e570728c96DEA84c6E0C73fa1bBc",
+    "demoInputToken": "0x4abaa9b6908284b7e125ed18235c89ae2ac93171",
+    "demoOutputToken": "0xec374a97629e429dbcf1187306d42d993c1d2a89"
+  },
+  "demo": {
+    "authorizedExecutor": "0xf8798fbd2a6617db40efbedbdd85124cf11d2cb5",
+    "action": "0x7265626c",
+    "vaultSeedAmount": "2000000000000000000000",
+    "perActionCap": "1000000000000000000000",
+    "humanApprovalThreshold": "500000000000000000000"
+  }
+}

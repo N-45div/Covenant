@@ -19,8 +19,11 @@ const chain = defineChain({
   rpcUrls: { default: { http: [rpcUrl] } }
 });
 const client = createPublicClient({ chain, transport: http(rpcUrl) });
-const fromBlock = process.env.COVENANT_FROM_BLOCK ? BigInt(process.env.COVENANT_FROM_BLOCK) : 0n;
+const fromBlock = process.env.COVENANT_FROM_BLOCK
+  ? BigInt(process.env.COVENANT_FROM_BLOCK)
+  : deployment.startBlock
+    ? BigInt(deployment.startBlock)
+    : 0n;
 const events = await indexCovenantEvents(client, deployment, { fromBlock });
 
 console.log(JSON.stringify({ deployment: deployment.network, events }, null, 2));
-
