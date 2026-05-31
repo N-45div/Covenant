@@ -535,6 +535,58 @@ select {
   padding: 1rem;
 }
 
+.flow-grid {
+  display: grid;
+  grid-template-columns: 0.82fr 1.18fr;
+  gap: 1rem;
+  padding-bottom: 5rem;
+}
+
+.form-stack {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.field {
+  display: grid;
+  gap: 0.4rem;
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
+.field input {
+  width: 100%;
+  min-height: 2.75rem;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.035);
+  color: var(--text);
+  padding: 0 0.8rem;
+  outline: none;
+}
+
+.field input:focus {
+  border-color: rgba(87, 214, 141, 0.7);
+}
+
+.button:disabled {
+  cursor: not-allowed;
+  opacity: 0.48;
+}
+
+.flow-events {
+  margin-top: 1rem;
+}
+
+.spin {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 @media (max-width: 900px) {
   .nav-links {
     display: none;
@@ -566,7 +618,8 @@ select {
   }
 
   .page-header,
-  .console-grid {
+  .console-grid,
+  .flow-grid {
     display: grid;
     grid-template-columns: 1fr;
   }
