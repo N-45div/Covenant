@@ -46,6 +46,14 @@ library CovenantTypes {
         uint64 deadline;
     }
 
+    struct RoutedAction {
+        uint256 policyId;
+        address vault;
+        address executor;
+        address recipient;
+        ActionProposal proposal;
+    }
+
     struct Decision {
         Verdict verdict;
         RejectCode code;

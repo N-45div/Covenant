@@ -15,11 +15,13 @@ contract PolicyEngine {
     mapping(uint256 policyId => mapping(address asset => bool)) public allowedOutputAsset;
     mapping(uint256 policyId => mapping(bytes4 action => uint256 amountCap)) public actionAmountCap;
     mapping(uint256 policyId => mapping(address actor => mapping(bytes4 action => uint64 timestamp))) public lastActionAt;
+    mapping(uint256 policyId => mapping(address recorder => bool)) public executionRecorder;
 
     event PolicyCreated(uint256 indexed policyId, address indexed owner);
     event PolicyActiveSet(uint256 indexed policyId, bool active);
     event PolicyTimingUpdated(uint256 indexed policyId, uint64 expiresAt, uint64 cooldownSeconds);
     event PolicyThresholdsUpdated(uint256 indexed policyId, uint16 minOutputBps, uint256 humanApprovalThreshold);
+    event ExecutionRecorderSet(uint256 indexed policyId, address indexed recorder, bool allowed);
     event ActionRecorded(uint256 indexed policyId, address indexed actor, bytes4 indexed action, uint64 timestamp);
 
     error ArrayRequired();
@@ -31,6 +33,7 @@ contract PolicyEngine {
     error InvalidExpiry();
     error PolicyNotFound();
     error NotPolicyOwner();
+    error NotExecutionRecorder();
     error NotApproved(CovenantTypes.RejectCode code);
 
     modifier onlyPolicyOwner(uint256 policyId) {
@@ -101,6 +104,11 @@ contract PolicyEngine {
         emit PolicyThresholdsUpdated(policyId, minOutputBps, humanApprovalThreshold);
     }
 
+    function setExecutionRecorder(uint256 policyId, address recorder, bool allowed) external onlyPolicyOwner(policyId) {
+        executionRecorder[policyId][recorder] = allowed;
+        emit ExecutionRecorderSet(policyId, recorder, allowed);
+    }
+
     function validate(
         uint256 policyId,
         CovenantTypes.ActionProposal calldata proposal
@@ -149,9 +157,14 @@ contract PolicyEngine {
         });
     }
 
-    function recordExecution(uint256 policyId, CovenantTypes.ActionProposal calldata proposal) external onlyPolicyOwner(policyId) {
+    function recordExecution(uint256 policyId, CovenantTypes.ActionProposal calldata proposal) external {
+        if (_policies[policyId].owner == address(0)) revert PolicyNotFound();
+        if (_policies[policyId].owner != msg.sender && !executionRecorder[policyId][msg.sender]) {
+            revert NotExecutionRecorder();
+        }
+
         CovenantTypes.Decision memory decision = validate(policyId, proposal);
-        if (decision.verdict != CovenantTypes.Verdict.Approved) revert NotApproved(decision.code);
+        if (decision.verdict == CovenantTypes.Verdict.Rejected) revert NotApproved(decision.code);
 
         uint64 timestamp = uint64(block.timestamp);
         lastActionAt[policyId][proposal.actor][proposal.action] = timestamp;
