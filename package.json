@@ -7,6 +7,7 @@
     "build": "tsc -p tsconfig.json",
     "dev:api": "tsx apps/api/src/server.ts",
     "deploy:stack": "XDG_CACHE_HOME=$PWD/.cache hardhat run contracts/scripts/deploy-stack.ts",
+    "index:deployment": "tsx apps/worker/src/index-deployment.ts",
     "smoke:deployment": "XDG_CACHE_HOME=$PWD/.cache hardhat run contracts/scripts/smoke-deployment.ts",
     "test": "vitest run",
     "test:watch": "vitest",
