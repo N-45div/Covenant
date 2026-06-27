@@ -21,16 +21,16 @@ flowchart LR
     end
 
     subgraph Worker["Cloudflare Worker Service Layer"]
-        N[/POST payer/coverage/]
-        O[/POST documents/extract/]
-        P[/POST evidence/check/]
-        Q[/POST external-agents/policy-variance/]
-        R[/POST payer/prior-auth/]
-        S[/GET payer/prior-auth/{authId}/]
-        T[/POST appeals/build/]
-        U[/POST schedule/]
-        V[/POST notify/]
-        W[/POST audit/packet/]
+        N["POST /payer/coverage"]
+        O["POST /documents/extract"]
+        P["POST /evidence/check"]
+        Q["POST /external-agents/policy-variance"]
+        R["POST /payer/prior-auth"]
+        S["GET /payer/prior-auth/:authId"]
+        T["POST /appeals/build"]
+        U["POST /schedule"]
+        V["POST /notify"]
+        W["POST /audit/packet"]
     end
 
     subgraph External["External Services and Agents"]
