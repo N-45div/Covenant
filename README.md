@@ -76,7 +76,12 @@ python -m unittest discover -s tests
 
 The `worker/` implementation is the deployable public API for UiPath API Workflows.
 
-Use your own Cloudflare account or temporary deploy claim URL for the Worker service. The exact public URL depends on the account that performs the deploy.
+Current live deployment:
+
+- Worker: `https://covenant-treatment-clearance.ndivij2004.workers.dev`
+- External Mastra agent on Render: `https://covenant-render-agent.onrender.com`
+
+Use your own Cloudflare account if you want to redeploy. The public Worker URL will depend on the account that performs the deploy.
 
 ```bash
 cd covenantaccess
@@ -113,9 +118,10 @@ The OpenAPI contract is in `openapi.yaml`.
 Quick verification:
 
 ```bash
-curl -sS https://<your-worker-url>/health
-curl -sS 'https://<your-worker-url>/public/diagnosis?orderId=ORD-MRI-1001'
-curl -sS -X POST https://<your-worker-url>/demo/run
+curl -sS https://covenant-treatment-clearance.ndivij2004.workers.dev/health
+curl -sS 'https://covenant-treatment-clearance.ndivij2004.workers.dev/public/diagnosis?orderId=ORD-MRI-1001'
+curl -sS https://covenant-render-agent.onrender.com/health
+curl -sS -X POST https://covenant-treatment-clearance.ndivij2004.workers.dev/demo/run
 ```
 
 The Worker uses real public APIs for ICD-10-CM and provider-reference validation, then uses a transparent payer simulator for prior authorization and denial rescue.
@@ -184,6 +190,13 @@ RENDER_POLICY_VARIANCE_URL=https://<your-render-service>
 ```
 
 If that URL is not configured, the Worker falls back to a local deterministic policy-variance evaluation so the demo still runs.
+
+Verified live on June 27, 2026:
+
+- Render `/health` returns `llm_configured: true`
+- Worker `/health` returns `render_policy_agent_configured: true`
+- Worker `POST /external-agents/policy-variance` returns `source: "render"`
+- Worker `POST /demo/run` completes the full denial-rescue-to-scheduling flow
 
 ## Submission Guardrail
 
