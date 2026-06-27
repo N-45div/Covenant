@@ -1,0 +1,19 @@
+[project]
+name = "covenant-clearance-strategy-agent"
+version = "0.1.0"
+description = "Native UiPath coded agent for Covenant treatment clearance routing."
+requires-python = ">=3.11"
+license = { text = "MIT" }
+dependencies = [
+  "langchain>=0.3.26",
+  "langchain-openai>=0.3.28",
+  "langgraph>=0.5.4",
+  "pydantic>=2.8.2",
+]
+
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
