@@ -1,0 +1,14 @@
+{
+  "name": "covenant-render-agent",
+  "private": true,
+  "type": "module",
+  "version": "0.1.0",
+  "description": "Render-hosted Mastra policy variance agent for Covenant.",
+  "scripts": {
+    "start": "node src/server.js"
+  },
+  "dependencies": {
+    "@mastra/core": "^1.46.0",
+    "zod": "^4.4.3"
+  }
+}
