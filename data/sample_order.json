@@ -1,0 +1,7 @@
+{
+  "order_id": "ORD-MRI-1001",
+  "scenario": "Lumbar MRI treatment clearance with missing evidence and denial rescue",
+  "ui_path_start_input": {
+    "orderId": "ORD-MRI-1001"
+  }
+}
