@@ -218,6 +218,8 @@ The API contract is documented in [openapi.yaml](./openapi.yaml).
 - Node.js `18+`
 - npm
 
+Use [`.env.example`](./.env.example) as the baseline for local and hosted environment configuration.
+
 ### Option A: Run the Python reference service
 
 ```bash
@@ -309,6 +311,8 @@ Required external-agent environment:
 
 - `OPENROUTER_API_KEY` optional
 - `OPENROUTER_MODEL` optional
+
+See [`.env.example`](./.env.example) for the concrete variable names used by the public reference stack.
 
 ### Render External Agent
 
