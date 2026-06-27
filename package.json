@@ -1,0 +1,16 @@
+{
+  "name": "covenant",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Covenant treatment clearance backend, Cloudflare Worker deploy target, and Render-hosted external agent.",
+  "scripts": {
+    "worker:dev": "wrangler dev",
+    "worker:deploy": "wrangler deploy",
+    "worker:typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20260617.0",
+    "typescript": "^5.8.3",
+    "wrangler": "^4.20.0"
+  }
+}

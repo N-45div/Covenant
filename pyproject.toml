@@ -1,0 +1,9 @@
+[project]
+name = "covenantaccess"
+version = "0.1.0"
+description = "Treatment clearance and denial rescue mock services for a UiPath Maestro BPMN hackathon build."
+requires-python = ">=3.11"
+license = { text = "MIT" }
+
+[tool.setuptools.packages.find]
+where = ["src"]
