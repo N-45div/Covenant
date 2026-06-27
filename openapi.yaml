@@ -1,0 +1,336 @@
+openapi: 3.1.0
+info:
+  title: Covenant Treatment Clearance API
+  version: 0.2.0
+  description: Public API contract for the Covenant UiPath Maestro BPMN demo.
+servers:
+  - url: https://covenant-treatment-clearance.ndivij2004.workers.dev
+paths:
+  /health:
+    get:
+      operationId: HealthCheck
+      summary: Check Worker health and optional OpenRouter configuration state.
+      responses:
+        "200":
+          description: Service health.
+  /ehr/orders/{orderId}:
+    get:
+      operationId: GetTreatmentOrder
+      summary: Fetch the treatment order.
+      parameters:
+        - name: orderId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Treatment order JSON.
+  /public/diagnosis:
+    get:
+      operationId: ValidateDiagnosis
+      summary: Validate diagnosis text and ICD-10-CM code against NLM Clinical Tables.
+      parameters:
+        - name: orderId
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Public diagnosis lookup result.
+  /public/providers:
+    get:
+      operationId: CheckProviderRegistry
+      summary: Check provider reference data against the NPPES NPI Registry.
+      parameters:
+        - name: orderId
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Public provider registry lookup result.
+  /payer/coverage:
+    post:
+      operationId: CheckCoverage
+      summary: Check payer coverage and prior authorization requirements.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                order_id:
+                  type: string
+      responses:
+        "200":
+          description: Coverage and documentation requirements.
+  /documents/extract:
+    post:
+      operationId: ExtractDocuments
+      summary: Extract facts from the case document IDs.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                document_ids:
+                  type: array
+                  items:
+                    type: string
+      responses:
+        "200":
+          description: Extracted facts and confidence signals.
+  /evidence/check:
+    post:
+      operationId: CheckEvidence
+      summary: Compare extracted facts against the payer policy checklist.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                facts:
+                  type: object
+                  additionalProperties: true
+      responses:
+        "200":
+          description: Evidence checklist result.
+  /external-agents/policy-variance:
+    post:
+      operationId: RunPolicyVarianceAgent
+      summary: Run the external Mastra policy variance agent.
+      description: >
+        Executes a Mastra TypeScript agentic workflow that checks payer policy variance,
+        missing evidence risk, denial routing, and human-review requirements before
+        Covenant advances to submission, missing-document repair, or denial rescue.
+        When OPENROUTER_API_KEY is configured, the endpoint also adds an OpenRouter
+        LLM explanation while preserving the deterministic Mastra routing output.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                order_id:
+                  type: string
+                coverage:
+                  type: object
+                  additionalProperties: true
+                evidence:
+                  type: object
+                  additionalProperties: true
+                payer_decision:
+                  type: object
+                  additionalProperties: true
+      responses:
+        "200":
+          description: Mastra policy variance agent result.
+  /payer/prior-auth:
+    post:
+      operationId: SubmitPriorAuth
+      summary: Submit a simulated prior authorization request.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                order_id:
+                  type: string
+                evidence:
+                  type: object
+                  additionalProperties: true
+      responses:
+        "200":
+          description: Prior authorization submission.
+  /payer/prior-auth/{authId}:
+    get:
+      operationId: GetPriorAuthStatus
+      summary: Poll simulated payer status.
+      parameters:
+        - name: authId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Payer decision.
+  /appeals/build:
+    post:
+      operationId: BuildAppealPacket
+      summary: Build a denial rescue appeal packet.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                auth_id:
+                  type: string
+                physician_note:
+                  type: string
+      responses:
+        "200":
+          description: Appeal packet.
+  /human/upload-missing-document:
+    post:
+      operationId: UploadMissingClinicalDocument
+      summary: Simulate clinic coordinator upload of missing payer-required evidence.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                order_id:
+                  type: string
+                document_id:
+                  type: string
+      responses:
+        "200":
+          description: Updated document list.
+  /human/approve-packet:
+    post:
+      operationId: ApprovePriorAuthPacket
+      summary: Simulate clinician approval of the assembled prior-auth packet.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                order_id:
+                  type: string
+                evidence:
+                  type: object
+                  additionalProperties: true
+                approved_by:
+                  type: string
+      responses:
+        "200":
+          description: Clinician approval record.
+  /human/approve-appeal:
+    post:
+      operationId: ApproveAppeal
+      summary: Simulate physician approval of the denial rescue appeal packet.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                auth_id:
+                  type: string
+                appeal_packet:
+                  type: object
+                  additionalProperties: true
+                approved_by:
+                  type: string
+      responses:
+        "200":
+          description: Physician appeal approval record.
+  /payer/prior-auth/{authId}/appeal:
+    post:
+      operationId: SubmitAppeal
+      summary: Submit a physician-approved appeal.
+      parameters:
+        - name: authId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                appeal_packet:
+                  type: object
+                  additionalProperties: true
+                approved_by:
+                  type: string
+      responses:
+        "200":
+          description: Appeal submission result.
+  /schedule:
+    post:
+      operationId: ScheduleTreatment
+      summary: Schedule approved treatment.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                order_id:
+                  type: string
+                auth_id:
+                  type: string
+      responses:
+        "200":
+          description: Appointment details.
+  /notify:
+    post:
+      operationId: NotifyPatient
+      summary: Send a simulated patient update.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                order_id:
+                  type: string
+                appointment:
+                  type: object
+                  additionalProperties: true
+      responses:
+        "200":
+          description: Patient notification result.
+  /audit/packet:
+    post:
+      operationId: CreateAuditPacket
+      summary: Create an audit packet for the completed clearance.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                order_id:
+                  type: string
+                auth_id:
+                  type: string
+                appointment:
+                  type: object
+                  additionalProperties: true
+      responses:
+        "200":
+          description: Audit packet summary.
+  /demo/run:
+    post:
+      operationId: RunCovenantDemo
+      summary: Run the full deterministic Covenant scenario.
+      responses:
+        "200":
+          description: End-to-end scenario trace.
