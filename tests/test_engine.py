@@ -39,6 +39,14 @@ class CovenantAccessEngineTests(unittest.TestCase):
         self.assertIn("appeal_packet_built", step_names)
         self.assertIn("appeal_approved", step_names)
 
+    def test_xray_order_has_no_prior_auth_route(self):
+        order = engine.get_order("ORD-XRAY-1002")
+        coverage = engine.check_coverage(order)
+
+        self.assertFalse(coverage["requires_prior_auth"])
+        self.assertEqual(coverage["route"], "no_prior_auth")
+        self.assertEqual(coverage["documentation_requirements"], [])
+
 
 if __name__ == "__main__":
     unittest.main()

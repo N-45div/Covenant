@@ -92,6 +92,34 @@ const orders: Record<string, Order> = {
       urgency: "standard"
     },
     documents: ["clinical-note-1001", "referral-letter-1001", "insurance-card-1001"]
+  },
+  "ORD-XRAY-1002": {
+    order_id: "ORD-XRAY-1002",
+    patient: {
+      id: "PAT-3188",
+      name: "Jordan Lee",
+      dob: "1992-09-03",
+      phone: "+1-555-0112"
+    },
+    provider: {
+      id: "NPI-SEARCH-NY-SPORTS",
+      name: "Sports medicine provider from NPI Registry lookup",
+      specialty: "Sports Medicine",
+      state: "NY"
+    },
+    payer: {
+      id: "PAYER-ACME-MA",
+      name: "Acme Medicare Advantage",
+      member_id: "ACME-44-3188"
+    },
+    treatment: {
+      name: "Knee X-ray 3 views",
+      cpt: "73562",
+      icd10: "M25.561",
+      diagnosis_terms: "right knee pain",
+      urgency: "standard"
+    },
+    documents: ["clinical-note-1002", "insurance-card-1002"]
   }
 };
 
@@ -134,6 +162,26 @@ const documents: Record<string, { document_id: string; type: string; confidence:
       physical_therapy_weeks: 6,
       home_exercise_program: true,
       symptoms_persisted: true
+    }
+  },
+  "clinical-note-1002": {
+    document_id: "clinical-note-1002",
+    type: "clinical_note",
+    confidence: 0.95,
+    facts: {
+      diagnosis: "Right knee pain",
+      onset_days: 5,
+      trauma: false,
+      swelling: false
+    }
+  },
+  "insurance-card-1002": {
+    document_id: "insurance-card-1002",
+    type: "insurance_card",
+    confidence: 0.99,
+    facts: {
+      payer: "Acme Medicare Advantage",
+      member_id: "ACME-44-3188"
     }
   }
 };
@@ -204,6 +252,38 @@ async function readJson(request: Request): Promise<Record<string, any>> {
   }
 }
 
+function bodyValue<T = any>(body: Record<string, any>, ...keys: string[]): T | undefined {
+  for (const key of keys) {
+    const value = body[key];
+    if (value !== undefined && value !== null) {
+      return value as T;
+    }
+  }
+  return undefined;
+}
+
+function bodyString(body: Record<string, any>, ...keys: string[]): string | undefined {
+  const value = bodyValue(body, ...keys);
+  return typeof value === "string" && value.trim() ? value : undefined;
+}
+
+function bodyArray<T = any>(body: Record<string, any>, ...keys: string[]): T[] {
+  const value = bodyValue<T[]>(body, ...keys);
+  return Array.isArray(value) ? value : [];
+}
+
+function orderIdFromBody(body: Record<string, any>, fallback = "ORD-MRI-1001"): string {
+  return bodyString(body, "order_id", "orderId") ?? fallback;
+}
+
+function authIdFromBody(body: Record<string, any>): string {
+  return bodyString(body, "auth_id", "authId") ?? "";
+}
+
+function orderFromBody(body: Record<string, any>, fallback = "ORD-MRI-1001"): Order {
+  return (body.order as Order | undefined) ?? orders[orderIdFromBody(body, fallback)];
+}
+
 function extractDocuments(documentIds: string[]) {
   const extracted = documentIds.map((documentId) => {
     return documents[documentId] ?? {
@@ -231,12 +311,13 @@ function flattenFacts(extraction: ReturnType<typeof extractDocuments>) {
 }
 
 function checkCoverage(order: Order) {
+  const requiresPriorAuth = policy.payer_id === order.payer.id && policy.cpt === order.treatment.cpt;
   return {
     payer_id: order.payer.id,
-    policy_id: policy.policy_id,
-    requires_prior_auth: true,
-    route: "prior_auth_required",
-    documentation_requirements: policy.checklist
+    policy_id: requiresPriorAuth ? policy.policy_id : null,
+    requires_prior_auth: requiresPriorAuth,
+    route: requiresPriorAuth ? "prior_auth_required" : "no_prior_auth",
+    documentation_requirements: requiresPriorAuth ? policy.checklist : []
   };
 }
 
@@ -766,12 +847,12 @@ export default {
 
       if (request.method === "POST" && path === "/documents/extract") {
         const body = await readJson(request);
-        return json(extractDocuments(body.document_ids ?? []));
+        return json(extractDocuments(bodyArray<string>(body, "document_ids", "documentIds")));
       }
 
       if (request.method === "POST" && path === "/payer/coverage") {
         const body = await readJson(request);
-        const order = body.order ?? orders[body.order_id ?? "ORD-MRI-1001"];
+        const order = orderFromBody(body);
         return json(checkCoverage(order));
       }
 
@@ -791,7 +872,7 @@ export default {
 
       if (request.method === "POST" && path === "/payer/prior-auth") {
         const body = await readJson(request);
-        const order = body.order ?? orders[body.order_id ?? "ORD-MRI-1001"];
+        const order = orderFromBody(body);
         const evidence = body.evidence ?? checkEvidence(body.facts ?? {});
         return json(submitPriorAuth(order, evidence));
       }
@@ -803,49 +884,51 @@ export default {
 
       if (request.method === "POST" && path === "/appeals/build") {
         const body = await readJson(request);
-        return json(buildAppealPacket(body.auth_id, body.physician_note));
+        return json(buildAppealPacket(authIdFromBody(body), bodyString(body, "physician_note", "physicianNote")));
       }
 
       if (request.method === "POST" && path === "/human/upload-missing-document") {
         const body = await readJson(request);
-        const order = body.order ?? orders[body.order_id ?? "ORD-MRI-1001"];
-        return json(uploadMissingDocument(order, body.document_id));
+        const order = orderFromBody(body);
+        return json(uploadMissingDocument(order, bodyString(body, "document_id", "documentId")));
       }
 
       if (request.method === "POST" && path === "/human/approve-packet") {
         const body = await readJson(request);
-        const order = body.order ?? orders[body.order_id ?? "ORD-MRI-1001"];
-        return json(approvePriorAuthPacket(order, body.evidence, body.approved_by));
+        const order = orderFromBody(body);
+        return json(approvePriorAuthPacket(order, body.evidence, bodyString(body, "approved_by", "approvedBy")));
       }
 
       if (request.method === "POST" && path === "/human/approve-appeal") {
         const body = await readJson(request);
-        return json(approveAppeal(body.auth_id, body.appeal_packet, body.approved_by));
+        return json(
+          approveAppeal(authIdFromBody(body), body.appeal_packet ?? body.appealPacket, bodyString(body, "approved_by", "approvedBy"))
+        );
       }
 
       if (request.method === "POST" && path.startsWith("/payer/prior-auth/") && path.endsWith("/appeal")) {
         const parts = path.split("/");
         const authId = parts[parts.length - 2];
         const body = await readJson(request);
-        return json(submitAppeal(authId, body.appeal_packet, body.approved_by ?? "Physician"));
+        return json(submitAppeal(authId, body.appeal_packet ?? body.appealPacket, bodyString(body, "approved_by", "approvedBy") ?? "Physician"));
       }
 
       if (request.method === "POST" && path === "/schedule") {
         const body = await readJson(request);
-        const order = body.order ?? orders[body.order_id ?? "ORD-MRI-1001"];
-        return json(scheduleTreatment(order, body.auth_id));
+        const order = orderFromBody(body);
+        return json(scheduleTreatment(order, authIdFromBody(body)));
       }
 
       if (request.method === "POST" && path === "/notify") {
         const body = await readJson(request);
-        const order = body.order ?? orders[body.order_id ?? "ORD-MRI-1001"];
+        const order = orderFromBody(body);
         return json(notifyPatient(order, body.appointment));
       }
 
       if (request.method === "POST" && path === "/audit/packet") {
         const body = await readJson(request);
-        const order = body.order ?? orders[body.order_id ?? "ORD-MRI-1001"];
-        return json(createAuditPacket(order, body.auth_id, body.appointment));
+        const order = orderFromBody(body);
+        return json(createAuditPacket(order, authIdFromBody(body), body.appointment));
       }
 
       if (request.method === "POST" && path === "/demo/run") {

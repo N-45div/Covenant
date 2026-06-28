@@ -41,6 +41,35 @@ ORDERS: dict[str, dict[str, Any]] = {
             "referral-letter-1001",
             "insurance-card-1001",
         ],
+    },
+    "ORD-XRAY-1002": {
+        "order_id": "ORD-XRAY-1002",
+        "patient": {
+            "id": "PAT-3188",
+            "name": "Jordan Lee",
+            "dob": "1992-09-03",
+            "phone": "+1-555-0112",
+        },
+        "provider": {
+            "id": "NPI-9988776655",
+            "name": "Dr. Elena Park",
+            "specialty": "Sports Medicine",
+        },
+        "payer": {
+            "id": "PAYER-ACME-MA",
+            "name": "Acme Medicare Advantage",
+            "member_id": "ACME-44-3188",
+        },
+        "treatment": {
+            "name": "Knee X-ray 3 views",
+            "cpt": "73562",
+            "icd10": "M25.561",
+            "urgency": "standard",
+        },
+        "documents": [
+            "clinical-note-1002",
+            "insurance-card-1002",
+        ],
     }
 }
 
@@ -83,6 +112,26 @@ DOCUMENTS: dict[str, dict[str, Any]] = {
             "physical_therapy_weeks": 6,
             "home_exercise_program": True,
             "symptoms_persisted": True,
+        },
+    },
+    "clinical-note-1002": {
+        "document_id": "clinical-note-1002",
+        "type": "clinical_note",
+        "confidence": 0.95,
+        "facts": {
+            "diagnosis": "Right knee pain",
+            "onset_days": 5,
+            "trauma": False,
+            "swelling": False,
+        },
+    },
+    "insurance-card-1002": {
+        "document_id": "insurance-card-1002",
+        "type": "insurance_card",
+        "confidence": 0.99,
+        "facts": {
+            "payer": "Acme Medicare Advantage",
+            "member_id": "ACME-44-3188",
         },
     },
 }
@@ -183,12 +232,14 @@ def check_coverage(order: dict[str, Any]) -> dict[str, Any]:
                 "payer_id": order["payer"]["id"],
                 "policy_id": policy["policy_id"],
                 "requires_prior_auth": policy["requires_prior_auth"],
+                "route": "prior_auth_required",
                 "documentation_requirements": deepcopy(policy["checklist"]),
             }
     return {
         "payer_id": order["payer"]["id"],
         "policy_id": None,
         "requires_prior_auth": False,
+        "route": "no_prior_auth",
         "documentation_requirements": [],
     }
 

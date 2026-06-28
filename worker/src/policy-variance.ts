@@ -2,9 +2,11 @@ type JsonValue = any;
 
 export type PolicyVarianceInput = {
   order_id?: string;
+  orderId?: string;
   coverage?: {
     route?: string;
     requires_prior_auth?: boolean;
+    requiresPriorAuth?: boolean;
   };
   evidence?: {
     route?: string;
@@ -12,8 +14,14 @@ export type PolicyVarianceInput = {
     missing?: JsonValue[];
     missingLabels?: string[];
     missing_evidence?: boolean;
+    missingEvidence?: boolean;
   };
   payer_decision?: {
+    status?: string;
+    route?: string;
+    reason?: string;
+  };
+  payerDecision?: {
     status?: string;
     route?: string;
     reason?: string;
@@ -40,6 +48,25 @@ export type PolicyVarianceOutput = {
   llm_error?: string;
 };
 
+function normalizeInput(input: PolicyVarianceInput): PolicyVarianceInput {
+  return {
+    order_id: input.order_id ?? input.orderId,
+    coverage: input.coverage
+      ? {
+          ...input.coverage,
+          requires_prior_auth: input.coverage.requires_prior_auth ?? input.coverage.requiresPriorAuth
+        }
+      : undefined,
+    evidence: input.evidence
+      ? {
+          ...input.evidence,
+          missing_evidence: input.evidence.missing_evidence ?? input.evidence.missingEvidence
+        }
+      : undefined,
+    payer_decision: input.payer_decision ?? input.payerDecision
+  };
+}
+
 function normalizeGaps(input: PolicyVarianceInput) {
   const missingLabels = input.evidence?.missingLabels ?? [];
   const missingEvidence = input.evidence?.missing ?? [];
@@ -53,11 +80,12 @@ function normalizeGaps(input: PolicyVarianceInput) {
 }
 
 export function evaluatePolicyVariance(input: PolicyVarianceInput): PolicyVarianceOutput {
+  const normalized = normalizeInput(input);
   const hasPriorAuth =
-    input.coverage?.requires_prior_auth === true || input.coverage?.route === "prior_auth_required";
-  const payerStatus = input.payer_decision?.status ?? input.payer_decision?.route ?? "";
+    normalized.coverage?.requires_prior_auth === true || normalized.coverage?.route === "prior_auth_required";
+  const payerStatus = normalized.payer_decision?.status ?? normalized.payer_decision?.route ?? "";
   const hasDenial = payerStatus === "denied";
-  const policyGaps = normalizeGaps(input);
+  const policyGaps = normalizeGaps(normalized);
   const trace = [
     {
       step: "coverage",
@@ -75,7 +103,8 @@ export function evaluatePolicyVariance(input: PolicyVarianceInput): PolicyVarian
       framework: "Mastra",
       route: "denial_rescue",
       risk_level: "high",
-      policy_gaps: policyGaps.length > 0 ? policyGaps : [input.payer_decision?.reason ?? "Payer denial requires appeal review"],
+      policy_gaps:
+        policyGaps.length > 0 ? policyGaps : [normalized.payer_decision?.reason ?? "Payer denial requires appeal review"],
       next_best_action: "Build denial rescue packet and route to physician approval before appeal submission.",
       human_review_required: true,
       audit_note:
@@ -84,7 +113,7 @@ export function evaluatePolicyVariance(input: PolicyVarianceInput): PolicyVarian
         ...trace,
         {
           step: "payer_decision",
-          decision: input.payer_decision?.reason ?? "denied"
+          decision: normalized.payer_decision?.reason ?? "denied"
         }
       ]
     };
@@ -145,6 +174,7 @@ export async function enrichPolicyVarianceWithOpenRouter(
   result: PolicyVarianceOutput,
   options: OpenRouterOptions = {}
 ): Promise<PolicyVarianceOutput> {
+  const normalized = normalizeInput(input);
   const model = options.model ?? "openai/gpt-4o-mini";
   if (!options.enabled || !options.apiKey) {
     return {
@@ -178,11 +208,11 @@ export async function enrichPolicyVarianceWithOpenRouter(
             role: "user",
             content: JSON.stringify(
               {
-                order_id: input.order_id,
+                order_id: normalized.order_id,
                 deterministic_agent_result: result,
-                coverage: input.coverage,
-                evidence: input.evidence,
-                payer_decision: input.payer_decision
+                coverage: normalized.coverage,
+                evidence: normalized.evidence,
+                payer_decision: normalized.payer_decision
               },
               null,
               2

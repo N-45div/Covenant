@@ -25,6 +25,17 @@ def read_json(handler: BaseHTTPRequestHandler) -> dict[str, Any]:
     return json.loads(handler.rfile.read(length).decode("utf-8"))
 
 
+def pick(payload: dict[str, Any], *keys: str, default: Any = None) -> Any:
+    for key in keys:
+        if key in payload and payload[key] is not None:
+            return payload[key]
+    return default
+
+
+def pick_order(payload: dict[str, Any], fallback: str = "ORD-MRI-1001") -> dict[str, Any]:
+    return payload.get("order") or engine.get_order(pick(payload, "order_id", "orderId", default=fallback))
+
+
 class CovenantAccessHandler(BaseHTTPRequestHandler):
     server_version = "CovenantAccess/0.1"
 
@@ -56,37 +67,48 @@ class CovenantAccessHandler(BaseHTTPRequestHandler):
                 json_response(self, 200, engine.run_demo())
                 return
             if path == "/documents/extract":
-                json_response(self, 200, engine.extract_documents(payload.get("document_ids", [])))
+                json_response(self, 200, engine.extract_documents(pick(payload, "document_ids", "documentIds", default=[])))
                 return
             if path == "/payer/coverage":
-                order = payload.get("order") or engine.get_order(payload["order_id"])
+                order = pick_order(payload)
                 json_response(self, 200, engine.check_coverage(order))
                 return
             if path == "/evidence/check":
                 json_response(self, 200, engine.check_evidence(payload["policy_id"], payload["facts"]))
                 return
             if path == "/payer/prior-auth":
-                json_response(self, 200, engine.submit_prior_auth(payload["order"], payload["evidence"]))
+                json_response(self, 200, engine.submit_prior_auth(pick_order(payload), payload["evidence"]))
                 return
             if path.endswith("/appeal") and path.startswith("/payer/prior-auth/"):
                 auth_id = path.split("/")[-2]
-                result = engine.submit_appeal(auth_id, payload["appeal_packet"], payload["approved_by"])
+                result = engine.submit_appeal(
+                    auth_id,
+                    pick(payload, "appeal_packet", "appealPacket"),
+                    pick(payload, "approved_by", "approvedBy"),
+                )
                 json_response(self, 200, result)
                 return
             if path == "/appeals/build":
-                result = engine.build_appeal_packet(payload["auth_id"], payload["physician_note"])
+                result = engine.build_appeal_packet(
+                    pick(payload, "auth_id", "authId"),
+                    pick(payload, "physician_note", "physicianNote"),
+                )
                 json_response(self, 200, result)
                 return
             if path == "/schedule":
-                result = engine.schedule_treatment(payload["order"], payload["auth_id"])
+                result = engine.schedule_treatment(pick_order(payload), pick(payload, "auth_id", "authId"))
                 json_response(self, 200, result)
                 return
             if path == "/notify":
-                result = engine.notify_patient(payload["order"], payload["appointment"])
+                result = engine.notify_patient(pick_order(payload), payload["appointment"])
                 json_response(self, 200, result)
                 return
             if path == "/audit/packet":
-                result = engine.create_audit_packet(payload["order"], payload["auth_id"], payload["appointment"])
+                result = engine.create_audit_packet(
+                    pick_order(payload),
+                    pick(payload, "auth_id", "authId"),
+                    payload["appointment"],
+                )
                 json_response(self, 200, result)
                 return
             json_response(self, 404, {"error": "not_found", "path": path})
