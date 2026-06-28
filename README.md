@@ -1,35 +1,28 @@
 # Covenant
 
-## Treatment Clearance & Denial Rescue Orchestrator
+## Treatment Clearance Orchestration in UiPath Maestro BPMN
 
-Because treatment should not wait in paperwork.
+Covenant is a Track 2 UiPath Maestro BPMN solution for treatment clearance in healthcare. It keeps treatment orders moving through coverage review, evidence collection, prior authorization, denial rescue, scheduling, patient communication, and audit generation inside one governed process.
 
-Covenant is a Track 2 UiPath Maestro BPMN solution for treatment clearance in healthcare. It orchestrates eligibility checks, evidence gathering, prior authorization, denial rescue, scheduling, patient communication, and audit generation through a governed end-to-end process. UiPath remains the control plane. External services and agents are used only as orchestrated participants.
+UiPath is the orchestration layer. The surrounding services and agents are participants in that process, not replacements for it.
 
 ## Business Problem
 
-When a doctor orders an MRI, infusion, procedure, or specialist treatment, care often stalls before it reaches the patient. The order enters an administrative queue shaped by payer eligibility checks, prior authorization requirements, missing documentation, denial handling, staff review, and scheduling dependencies.
+Treatment orders often stall before the patient ever reaches care. The issue is not one slow API call. The issue is that the clearance workflow breaks across payers, clinics, reviewers, evidence packets, waiting states, and exception paths.
 
-The operational problem is not that one step is slow. The problem is that the workflow breaks across systems, ownership boundaries, and exception paths. Orders become open loops. Staff spend time chasing documents, re-keying evidence, checking status manually, and reacting to denials too late.
+In practice that creates:
 
-Covenant addresses that gap with a BPMN-first orchestration layer that keeps the order moving until it reaches one of two governed outcomes:
+- open loops around prior authorization and status checks
+- repeated manual chasing for missing documentation
+- delayed reaction to denials
+- weak visibility into who owns the next step
+- fragmented auditability across systems
 
-- treatment is scheduled, communicated, and audited
-- denial rescue is prepared, reviewed, appealed, and tracked
-
-## Product Value
-
-Covenant improves the operating model around treatment clearance, not just one task inside it.
-
-- `Fewer open loops`: every order remains inside a visible workflow until it reaches a governed outcome.
-- `Less manual chasing`: evidence, status checks, routing, and packet preparation move through one orchestrated process.
-- `Better exception handling`: missing evidence and denials are treated as first-class branches, not side work.
-- `Safer approvals`: high-impact transitions stay under human control.
-- `Clearer accountability`: the process has explicit ownership, state, and traceability across systems.
+Covenant addresses that by modeling treatment clearance as one long-running BPMN process with explicit gateways, service calls, review checkpoints, and downstream outcomes.
 
 ## What The Solution Does
 
-Covenant models a predictable treatment-clearance process in UiPath Maestro BPMN and supports it with API workflows, document extraction, governed approval steps, and agentic policy analysis.
+Covenant models a predictable treatment-clearance process in UiPath Maestro BPMN and supports it with API workflows, document extraction, coded policy analysis, governed review points, and audit generation.
 
 Core flow:
 
@@ -37,160 +30,175 @@ Core flow:
 2. check payer coverage and determine whether prior authorization is required
 3. extract clinical and administrative evidence
 4. evaluate completeness against payer requirements
-5. route missing evidence to upload and retry
-6. route complete packets to staff approval
-7. submit prior authorization
-8. monitor payer decision
-9. if denied, build denial rescue and appeal
-10. if approved, schedule treatment
+5. route missing evidence to remediation and retry
+6. route complete packets to governed review
+7. submit prior authorization when required
+8. monitor payer decision through a long-running process step
+9. if denied, build denial rescue and prepare appeal
+10. if approved or not required, schedule treatment
 11. notify the patient
 12. generate an audit packet
 
 ## Why This Fits Track 2
 
-Track 2 asks for a BPMN 2.0 process that orchestrates humans, APIs, agents, and decisions through a defined end-to-end flow. Covenant is built around that exact structure:
+Track 2 asks for a BPMN 2.0 process that orchestrates APIs, agents, humans, and decisions through an end-to-end business flow. Covenant is built around that exact structure:
 
-- BPMN process orchestration in UiPath Maestro
-- API workflows for payer, scheduling, notification, and audit steps
-- agentic evidence and policy evaluation
-- human approvals at controlled decision points
-- explicit exception handling for missing evidence and denial rescue
+- UiPath Maestro BPMN owns the process model
+- API Workflows connect the process to service endpoints
+- coded agents evaluate policy variance under UiPath control
+- governed review checkpoints stay inside the BPMN
+- missing evidence and denial rescue are first-class branches, not side work
 
-This is not a generic chatbot wrapped around claims data. It is an operational process with named tasks, gateways, retries, and handoffs.
+This is an orchestration product, not a generic assistant wrapped around healthcare text.
 
-## Architecture
+## Current Product Shape
 
-See [ARCHITECTURE.md](./ARCHITECTURE.md) for the detailed Mermaid diagram and system notes.
+The repository ships three executable layers:
 
-High-level shape:
+1. `Covenant` BPMN in UiPath Studio Web
+2. a public Cloudflare Worker service layer used by API Workflows
+3. coded policy-variance agents:
+   - a native UiPath coded agent project in `uipath-coded-agent/`
+   - an external Render-hosted Mastra reference agent in `render-agent/`
 
-- UiPath Maestro BPMN is the orchestrator
-- Cloudflare Worker exposes the public service surface used by API workflows
-- a Render-hosted Mastra service provides an external policy-variance agent
-- public reference APIs validate diagnosis and provider context
-- deterministic logic keeps routing fail-closed when LLM enrichment is unavailable
+The BPMN remains the source of coordination. The agents contribute routing analysis; they do not own process state.
 
 ## UiPath Components Used
 
-- `UiPath Maestro BPMN` for the primary treatment-clearance process
-- `UiPath Studio Web` for process modeling, workflows, and agent assets
+- `UiPath Maestro BPMN` for the treatment-clearance process
+- `UiPath Studio Web` for BPMN, workflows, and coded-agent project assets
 - `UiPath API Workflows` for service-to-service orchestration
-- `UiPath Agent Builder` for low-code agent roles in evidence and denial routing
-- `UiPath Automation Cloud / Orchestrator` for deployment and execution management
+- `UiPath Coded Agents` for native policy-variance evaluation
+- `UiPath Automation Cloud / Orchestrator` for execution and deployment context
 
-Additional implementation surfaces used by the public reference stack:
+Supporting implementation surfaces:
 
-- `Cloudflare Workers` for the deployable service layer used by the demo
-- `Render` for the external Mastra agent runtime
-- `Mastra` for the external policy-variance agent
-- `OpenRouter` for optional LLM rationale generation inside the external agent
+- `Cloudflare Workers` for the public backend used by the workflows
+- `Render` for the external reference policy-variance runtime
+- `Mastra` for the external reference coded-agent implementation
+- `OpenRouter` for optional staff-facing rationale enrichment
 
 ## Agent Type
 
-Covenant uses **both** low-code and coded agents.
+Covenant uses coded agents.
 
-- `Low-code agents`: represented by UiPath Agent Builder roles in the BPMN design, especially evidence evaluation and denial rescue assistance
-- `Coded agents`: the external Mastra policy-variance agent deployed on Render and invoked through the orchestrated flow
+- `Native UiPath coded agent`: the `uipath-coded-agent/` project synced into Studio and invoked through `Start and wait for agent`
+- `External coded agent reference`: the Render-hosted Mastra policy-variance service invoked through the Worker
+
+The project does not depend on Agent Builder to make its primary orchestration story work.
 
 ## Why UiPath Is The Right Platform For This Problem
 
-Treatment clearance is not a single automation. It is a long-running operational process with branching decisions, retries, waiting states, compliance-sensitive approvals, and system handoffs. That is where UiPath is stronger than a standalone agent or a narrow API integration.
+Treatment clearance is a long-running administrative process with branching decisions, waiting states, retries, evidence dependencies, and high-impact review steps. That is where UiPath is valuable:
 
-UiPath improves the solution in five concrete ways:
+- `Maestro BPMN` gives the workflow a durable enterprise process model instead of burying logic inside custom code
+- `API Workflows` let the process call payer, extraction, scheduling, notification, and audit services through governed steps
+- `Coded Agents` let policy-variance logic participate inside the process without becoming the orchestrator
+- `Execution traceability` makes state and outcomes inspectable across the workflow
+- `Governed review points` keep high-impact transitions visible and auditable
 
-- `Maestro BPMN` gives the process an explicit enterprise workflow model instead of burying routing logic inside code.
-- `API Workflows` let the process call payer, extraction, scheduling, notification, and audit services without turning Maestro into a custom integration layer.
-- `Agent Builder` lets agents participate as governed workers inside the process instead of becoming the orchestrator themselves.
-- `Human-in-the-loop control` keeps clinicians and physicians at high-impact checkpoints such as packet approval and appeal approval.
-- `Orchestrator and execution traceability` make the full path auditable, which matters in healthcare operations where status, accountability, and exceptions must be visible.
+The strength of the platform here is orchestration discipline, not just automation breadth.
 
-In short, UiPath is valuable here because the problem is orchestration-heavy, stateful, and exception-driven.
+## Reference Scenarios
 
-## Example Flow
+The public reference stack supports two useful scenarios:
 
-In the reference scenario, Covenant receives a lumbar MRI order, determines that prior authorization is required, identifies missing evidence, routes the order through remediation and approval, handles a denial, prepares an appeal, and then completes scheduling, patient communication, and audit generation after approval.
+### Scenario A: No prior auth required
 
-The point of the product is not only to submit prior authorization faster. The point is to keep the full treatment-clearance lifecycle governed from order intake to scheduled care.
+- order: `ORD-XRAY-1002`
+- result: coverage returns `requires_prior_auth = false`
+- purpose: shows the honest `No prior auth` path
+
+### Scenario B: Prior auth, missing evidence, denial rescue
+
+- order: `ORD-MRI-1001`
+- result: prior auth is required, missing documentation is detected, denial rescue and appeal logic are exercised
+- purpose: shows the operationally complex path
+
+## Architecture
+
+See [ARCHITECTURE.md](./ARCHITECTURE.md) for the Mermaid diagram and system notes.
+
+High-level shape:
+
+- UiPath Maestro BPMN is the control plane
+- Cloudflare Worker exposes the public service surface used by API Workflows
+- a native UiPath coded agent evaluates policy variance under BPMN control
+- a Render-hosted Mastra service remains available as an external reference participant
+- public diagnosis and provider lookup APIs enrich the reference stack
+- deterministic routing remains authoritative when optional LLM enrichment is unavailable
 
 ## Live Deployment
 
 Current public endpoints:
 
 - Worker: `https://covenant-treatment-clearance.ndivij2004.workers.dev`
-- External policy agent: `https://covenant-render-agent.onrender.com`
+- External reference agent: `https://covenant-render-agent.onrender.com`
 
-Verified live on June 27, 2026:
+Verified in the public reference stack:
 
 - Worker health responds successfully
-- Render agent health responds successfully
-- Worker policy-variance endpoint uses the Render-backed external agent
-- `POST /demo/run` completes the denial-rescue-to-scheduling flow
+- Worker type contracts accept both `snake_case` and `camelCase` payload variants
+- no-auth coverage scenario is available for `ORD-XRAY-1002`
+- denial-rescue demo run is available for `ORD-MRI-1001`
 
 ## Judge Quick Start
 
-Judges can validate Covenant without local setup by using the deployed services directly.
+Judges can validate the service layer without local setup.
 
-### Step 1: Verify the Worker
+### 1. Verify Worker health
 
 ```bash
 curl -sS https://covenant-treatment-clearance.ndivij2004.workers.dev/health
 ```
 
-Expected result:
-
-- `status: "ok"`
-- `render_policy_agent_configured: true`
-
-### Step 2: Verify the External Agent
+### 2. Verify the no-prior-auth branch
 
 ```bash
-curl -sS https://covenant-render-agent.onrender.com/health
+curl -sS -X POST \
+  https://covenant-treatment-clearance.ndivij2004.workers.dev/payer/coverage \
+  -H 'content-type: application/json' \
+  -d '{"order_id":"ORD-XRAY-1002"}'
 ```
 
-Expected result:
+Expected outcome:
 
-- `status: "ok"`
-- `framework: "Mastra"`
+- `requires_prior_auth: false`
+- `route: "no_prior_auth"`
 
-### Step 3: Run the End-to-End Demo
+### 3. Verify the prior-auth branch
+
+```bash
+curl -sS -X POST \
+  https://covenant-treatment-clearance.ndivij2004.workers.dev/payer/coverage \
+  -H 'content-type: application/json' \
+  -d '{"order_id":"ORD-MRI-1001"}'
+```
+
+Expected outcome:
+
+- `requires_prior_auth: true`
+- `route: "prior_auth_required"`
+
+### 4. Run the end-to-end reference demo
 
 ```bash
 curl -sS -X POST \
   https://covenant-treatment-clearance.ndivij2004.workers.dev/demo/run
 ```
 
-Expected result:
+Expected outcome:
 
-- the response completes the treatment-clearance flow
-- the run reaches approval after denial rescue
-- the response includes final scheduling and audit fields such as:
-  - `payer_status`
-  - `appointment_id`
-  - `audit_packet_id`
-
-### Step 4: Validate The External Agent Route
-
-```bash
-curl -sS -X POST \
-  https://covenant-treatment-clearance.ndivij2004.workers.dev/external-agents/policy-variance \
-  -H 'content-type: application/json' \
-  -d '{"order_id":"ORD-MRI-1001"}'
-```
-
-Expected result:
-
-- the response shows the external policy-variance step
-- the response indicates the Render-backed agent is being used
+- the flow reaches denial rescue, appeal, approval, scheduling, and audit
+- the final payload includes `payer_status`, `appointment_id`, and `audit_packet_id`
 
 ## Public API Surface
 
-Useful endpoints exposed by the Worker:
-
 ```text
 GET  /health
-GET  /ehr/orders/ORD-MRI-1001
-GET  /public/diagnosis?orderId=ORD-MRI-1001
-GET  /public/providers?orderId=ORD-MRI-1001
+GET  /ehr/orders/{orderId}
+GET  /public/diagnosis?orderId={orderId}
+GET  /public/providers?orderId={orderId}
 POST /documents/extract
 POST /payer/coverage
 POST /evidence/check
@@ -218,7 +226,7 @@ The API contract is documented in [openapi.yaml](./openapi.yaml).
 - Node.js `18+`
 - npm
 
-Use [`.env.example`](./.env.example) as the baseline for local and hosted environment configuration.
+Use [`.env.example`](./.env.example) as the baseline for local and hosted configuration.
 
 ### Option A: Run the Python reference service
 
@@ -234,7 +242,7 @@ curl -s http://127.0.0.1:8088/health
 curl -s -X POST http://127.0.0.1:8088/demo/run
 ```
 
-### Option B: Run the external agent locally
+### Option B: Run the external reference agent locally
 
 ```bash
 cd covenantaccess/render-agent
@@ -252,8 +260,6 @@ http://127.0.0.1:10000/health
 
 ### Option C: Run the Worker locally
 
-In a new terminal:
-
 ```bash
 cd covenantaccess
 npm install
@@ -269,20 +275,15 @@ Default local Worker endpoint:
 http://127.0.0.1:8787/health
 ```
 
-Then run:
+### Option D: Package the native UiPath coded agent
 
 ```bash
-curl -sS http://127.0.0.1:8787/health
-curl -sS -X POST http://127.0.0.1:8787/demo/run
+cd covenantaccess/uipath-coded-agent
+source .venv/bin/activate
+uipath pack
 ```
 
-Expected local outcome:
-
-- Worker health succeeds
-- external agent health succeeds
-- `/demo/run` completes the order through denial rescue, scheduling, notification, and audit
-
-### Run tests and type checks
+## Tests and Type Checks
 
 ```bash
 cd covenantaccess
@@ -307,29 +308,11 @@ Required Worker environment:
 - `OPENROUTER_API_KEY` optional
 - `OPENROUTER_MODEL` optional
 
-Required external-agent environment:
-
-- `OPENROUTER_API_KEY` optional
-- `OPENROUTER_MODEL` optional
-
-See [`.env.example`](./.env.example) for the concrete variable names used by the public reference stack.
-
-### Render External Agent
-
-The external policy-variance agent lives in:
-
-```text
-render-agent/src/policy-variance-agent.js
-render-agent/src/server.js
-```
-
-Local run:
+### Render external reference agent
 
 ```bash
 cd covenantaccess/render-agent
 npm install
-export OPENROUTER_API_KEY=...
-export OPENROUTER_MODEL=google/gemini-2.5-flash-lite
 npm start
 ```
 
@@ -337,7 +320,7 @@ The repository includes `render.yaml` for Render deployment.
 
 ## Operational Guardrail
 
-Covenant is an administrative orchestration system. It prepares evidence, routes work, and escalates high-impact actions for human approval. It does not make independent treatment decisions.
+Covenant is an administrative orchestration system. It prepares evidence, routes work, and escalates high-impact steps for governed review. It does not make treatment decisions or medical-necessity decisions on its own.
 
 ## License
 

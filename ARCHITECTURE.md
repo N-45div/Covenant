@@ -4,91 +4,100 @@
 
 ```mermaid
 flowchart LR
-    A[Doctor Order Received] --> B[UiPath Maestro BPMN]
+    A[Doctor order received] --> B[UiPath Maestro BPMN]
 
     subgraph UiPath["UiPath Automation Cloud"]
-        B --> C[API Workflow: Coverage Check]
-        B --> D[API Workflow: Document Extract]
-        B --> E[Agent Step: Evidence Evaluation]
-        B --> F[Human Review Gate]
-        B --> G[API Workflow: Prior Auth Submission]
-        B --> H[API Workflow: Payer Status Check]
-        B --> I[Agent Step: Denial Rescue]
-        B --> J[Human Appeal Approval]
-        B --> K[API Workflow: Scheduling]
-        B --> L[API Workflow: Patient Update]
-        B --> M[API Workflow: Audit Packet]
+        B --> C[API Workflow: Pull order]
+        B --> D[API Workflow: Check coverage]
+        B --> E[API Workflow: Extract documents]
+        B --> F[API Workflow: Check evidence]
+        B --> G[UiPath coded agent: Evaluate policy variance]
+        B --> H[Governed review checkpoint]
+        B --> I[API Workflow: Submit prior auth]
+        B --> J[Timer and API Workflow: Check payer status]
+        B --> K[API Workflow: Build appeal packet]
+        B --> L[API Workflow: Schedule treatment]
+        B --> M[API Workflow: Notify patient]
+        B --> N[API Workflow: Create audit packet]
     end
 
-    subgraph Worker["Cloudflare Worker Service Layer"]
-        N["POST /payer/coverage"]
-        O["POST /documents/extract"]
-        P["POST /evidence/check"]
-        Q["POST /external-agents/policy-variance"]
-        R["POST /payer/prior-auth"]
-        S["GET /payer/prior-auth/:authId"]
-        T["POST /appeals/build"]
-        U["POST /schedule"]
-        V["POST /notify"]
-        W["POST /audit/packet"]
+    subgraph Worker["Cloudflare Worker service layer"]
+        O["GET /ehr/orders/{orderId}"]
+        P["POST /payer/coverage"]
+        Q["POST /documents/extract"]
+        R["POST /evidence/check"]
+        S["POST /payer/prior-auth"]
+        T["GET /payer/prior-auth/{authId}"]
+        U["POST /appeals/build"]
+        V["POST /schedule"]
+        W["POST /notify"]
+        X["POST /audit/packet"]
+        Y["POST /external-agents/policy-variance"]
     end
 
-    subgraph External["External Services and Agents"]
-        X[Render Mastra Policy Variance Agent]
-        Y[OpenRouter LLM Rationale]
-        Z[NLM ICD-10 Validation]
-        AA[NPPES Provider Validation]
+    subgraph Reference["Reference services"]
+        Z[Render Mastra policy agent]
+        AA[OpenRouter rationale layer]
+        AB[NLM ICD-10 lookup]
+        AC[NPPES provider lookup]
     end
 
-    C --> N
-    D --> O
-    E --> P
+    C --> O
+    D --> P
     E --> Q
-    G --> R
-    H --> S
-    I --> T
+    F --> R
+    I --> S
+    J --> T
     K --> U
     L --> V
     M --> W
+    N --> X
 
-    Q --> X
-    X --> Y
-    N --> Z
-    N --> AA
+    G --> Y
+    Y --> Z
+    Z --> AA
 
-    S -->|Denied| I
-    S -->|Approved| K
-    P -->|Missing Evidence| F
-    P -->|Complete| G
-    T --> J
+    O --> AB
+    O --> AC
 ```
 
 ## Flow Notes
 
 ### 1. Control plane
 
-UiPath Maestro BPMN is the system of coordination. It owns process state, routing, retry behavior, and approval sequencing.
+UiPath Maestro BPMN owns the process model, state transitions, waiting states, and routing decisions. That is the submission-critical layer.
 
 ### 2. Service layer
 
-The Cloudflare Worker exposes a stable HTTP surface for coverage checks, extraction, evidence analysis, submission, scheduling, notification, and audit generation. This is the reproducible public backend used by the demo.
+The Cloudflare Worker exposes the public HTTP surface used by the API Workflows. It provides a reproducible backend for coverage checks, extraction, evidence analysis, submission, payer status, scheduling, notification, audit generation, and the public demo run.
 
-### 3. External coded agent
+### 3. Native coded agent
 
-The Render-hosted Mastra service is invoked as an external participant, not as the orchestrator. It evaluates policy variance and denial-rescue routing under UiPath control.
+The repository includes a native UiPath coded agent project in `uipath-coded-agent/`. Its role is to evaluate policy variance under BPMN control using deterministic-first logic with optional LLM enrichment.
 
-### 4. Optional LLM enrichment
+### 4. External coded-agent reference
 
-OpenRouter adds concise staff-facing rationale to the external agent output. Deterministic routing remains authoritative if LLM enrichment is unavailable.
+The Render-hosted Mastra service remains available as an external reference participant. It is useful for public validation and comparison, but it does not replace UiPath as the orchestrator.
 
-### 5. Human checkpoints
+### 5. Data-contract tolerance
 
-The process includes explicit approval points before submission and appeal. In the public reference stack these are exposed as approval endpoints for reproducibility; in the BPMN model they remain governed human review stages.
+The Worker, local reference server, and coded-agent schemas were hardened to accept both `snake_case` and `camelCase` payloads. This matters because UiPath workflow outputs often surface fields in a different naming style than the backend source contract.
+
+### 6. Reference scenarios
+
+Two reference orders are important for the product story:
+
+- `ORD-XRAY-1002` demonstrates the honest `no_prior_auth` branch
+- `ORD-MRI-1001` demonstrates prior auth, missing evidence, denial rescue, appeal, scheduling, and audit completion
+
+### 7. Governed review points
+
+The process contains explicit review checkpoints before high-impact transitions. In the current public reference stack, those checkpoints are modeled in BPMN and supported by service endpoints rather than being positioned as a polished production review UI.
 
 ## Why this architecture is submission-strong
 
-- It is clearly BPMN-first, which aligns with Track 2.
-- It shows humans, APIs, agents, and decisions in one system.
-- It handles exceptions, not just the happy path.
-- It preserves UiPath as the orchestration layer even when external agents are used.
-- It provides a deployable, testable public reference surface for judging.
+- It is clearly BPMN-first and aligns directly to Track 2.
+- It shows APIs, coded agents, timers, and review checkpoints in one governed process.
+- It covers both straight-through and exception-heavy paths.
+- It keeps UiPath as the orchestration layer even when external services are involved.
+- It ships a reproducible public backend surface for judges while preserving a native UiPath coded-agent path inside the repo.
