@@ -16,7 +16,7 @@ LlmStatus = Literal["not_configured", "succeeded", "failed"]
 
 
 class PolicyRequirement(BaseModel):
-    model_config = ConfigDict(extra="allow")
+    model_config = ConfigDict(extra="allow", populate_by_name=True)
 
     id: str
     label: str
@@ -27,7 +27,7 @@ class PolicyRequirement(BaseModel):
 
 
 class EvidenceItem(BaseModel):
-    model_config = ConfigDict(extra="allow")
+    model_config = ConfigDict(extra="allow", populate_by_name=True)
 
     id: str | None = None
     label: str | None = None
@@ -37,16 +37,16 @@ class EvidenceItem(BaseModel):
 
 
 class CoverageInput(BaseModel):
-    model_config = ConfigDict(extra="allow")
+    model_config = ConfigDict(extra="allow", populate_by_name=True)
 
-    policy_id: str | None = None
-    requires_prior_auth: bool | None = None
+    policy_id: str | None = Field(default=None, alias="policyId")
+    requires_prior_auth: bool | None = Field(default=None, alias="requiresPriorAuth")
     route: str | None = None
-    documentation_requirements: list[PolicyRequirement] = Field(default_factory=list)
+    documentation_requirements: list[PolicyRequirement] = Field(default_factory=list, alias="documentationRequirements")
 
 
 class EvidenceInput(BaseModel):
-    model_config = ConfigDict(extra="allow")
+    model_config = ConfigDict(extra="allow", populate_by_name=True)
 
     complete: bool | None = None
     route: str | None = None
@@ -56,7 +56,7 @@ class EvidenceInput(BaseModel):
 
 
 class PayerDecisionInput(BaseModel):
-    model_config = ConfigDict(extra="allow")
+    model_config = ConfigDict(extra="allow", populate_by_name=True)
 
     status: str | None = None
     route: str | None = None
@@ -64,12 +64,12 @@ class PayerDecisionInput(BaseModel):
 
 
 class PolicyVarianceInput(BaseModel):
-    model_config = ConfigDict(extra="allow")
+    model_config = ConfigDict(extra="allow", populate_by_name=True)
 
-    order_id: str = "ORD-MRI-1001"
+    order_id: str = Field(default="ORD-MRI-1001", alias="orderId")
     coverage: CoverageInput = Field(default_factory=CoverageInput)
     evidence: EvidenceInput = Field(default_factory=EvidenceInput)
-    payer_decision: PayerDecisionInput = Field(default_factory=PayerDecisionInput)
+    payer_decision: PayerDecisionInput = Field(default_factory=PayerDecisionInput, alias="payerDecision")
 
 
 class TraceItem(BaseModel):

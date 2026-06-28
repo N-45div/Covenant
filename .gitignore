@@ -10,3 +10,8 @@ __pycache__/
 venv/
 package-lock.json
 .internal/
+uipath-coded-agent/.uipath/
+uipath-coded-agent/.agent/
+uipath-coded-agent/.claude/
+uipath-coded-agent/AGENTS.md
+uipath-coded-agent/CLAUDE.md

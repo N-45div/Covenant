@@ -107,6 +107,29 @@ class CovenantClearanceStrategyAgentTests(unittest.TestCase):
         self.assertEqual(result.risk_level, "low")
         self.assertFalse(result.human_review_required)
 
+    def test_camel_case_inputs_are_accepted(self):
+        result = evaluate_packet(
+            {
+                "orderId": "ORD-MRI-1001",
+                "coverage": {
+                    "requiresPriorAuth": True,
+                    "route": "prior_auth_required",
+                    "documentationRequirements": [],
+                },
+                "evidence": {
+                    "matched": [],
+                    "missing": [],
+                },
+                "payerDecision": {
+                    "status": "denied",
+                    "reason": "Conservative therapy documentation not found",
+                },
+            }
+        )
+
+        self.assertEqual(result.route, "denial_rescue")
+        self.assertTrue(result.human_review_required)
+
 
 if __name__ == "__main__":
     unittest.main()

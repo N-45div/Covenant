@@ -4,6 +4,7 @@ version = "0.1.0"
 description = "Native UiPath coded agent for Covenant treatment clearance routing."
 requires-python = ">=3.11"
 license = { text = "MIT" }
+authors = [{ name = "NDivij" }]
 dependencies = [
   "langchain>=0.3.26",
   "langchain-openai>=0.3.28",

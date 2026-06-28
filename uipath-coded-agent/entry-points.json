@@ -1,0 +1,272 @@
+{
+    "$schema": "https://cloud.uipath.com/draft/2024-12/entry-point",
+    "$id": "entry-points.json",
+    "entryPoints": [
+        {
+            "filePath": "clearance_strategy",
+            "uniqueId": "50ba29b4-f3ca-4313-a87e-250395a791c5",
+            "type": "agent",
+            "input": {
+                "type": "object",
+                "properties": {
+                    "order_id": {
+                        "default": "ORD-MRI-1001",
+                        "title": "Order Id",
+                        "type": "string"
+                    },
+                    "coverage": {
+                        "additionalProperties": true,
+                        "properties": {
+                            "policy_id": {
+                                "type": "string"
+                            },
+                            "requires_prior_auth": {
+                                "type": "boolean"
+                            },
+                            "route": {
+                                "type": "string"
+                            },
+                            "documentation_requirements": {
+                                "items": {
+                                    "additionalProperties": true,
+                                    "properties": {
+                                        "id": {
+                                            "title": "Id",
+                                            "type": "string"
+                                        },
+                                        "label": {
+                                            "title": "Label",
+                                            "type": "string"
+                                        },
+                                        "fact": {
+                                            "type": "string"
+                                        },
+                                        "expected": {
+                                            "type": "string"
+                                        },
+                                        "minimum": {
+                                            "type": "number"
+                                        },
+                                        "present": {
+                                            "type": "boolean"
+                                        }
+                                    },
+                                    "required": [
+                                        "id",
+                                        "label"
+                                    ],
+                                    "title": "PolicyRequirement",
+                                    "type": "object"
+                                },
+                                "title": "Documentation Requirements",
+                                "type": "array"
+                            }
+                        },
+                        "title": "CoverageInput",
+                        "type": "object"
+                    },
+                    "evidence": {
+                        "additionalProperties": true,
+                        "properties": {
+                            "complete": {
+                                "type": "boolean"
+                            },
+                            "route": {
+                                "type": "string"
+                            },
+                            "matched": {
+                                "items": {
+                                    "additionalProperties": true,
+                                    "properties": {
+                                        "id": {
+                                            "type": "string"
+                                        },
+                                        "label": {
+                                            "type": "string"
+                                        },
+                                        "fact": {
+                                            "type": "string"
+                                        },
+                                        "value": {},
+                                        "passed": {
+                                            "type": "boolean"
+                                        }
+                                    },
+                                    "title": "EvidenceItem",
+                                    "type": "object"
+                                },
+                                "title": "Matched",
+                                "type": "array"
+                            },
+                            "missing": {
+                                "items": {
+                                    "additionalProperties": true,
+                                    "properties": {
+                                        "id": {
+                                            "type": "string"
+                                        },
+                                        "label": {
+                                            "type": "string"
+                                        },
+                                        "fact": {
+                                            "type": "string"
+                                        },
+                                        "value": {},
+                                        "passed": {
+                                            "type": "boolean"
+                                        }
+                                    },
+                                    "title": "EvidenceItem",
+                                    "type": "object"
+                                },
+                                "title": "Missing",
+                                "type": "array"
+                            },
+                            "summary": {
+                                "type": "string"
+                            }
+                        },
+                        "title": "EvidenceInput",
+                        "type": "object"
+                    },
+                    "payer_decision": {
+                        "additionalProperties": true,
+                        "properties": {
+                            "status": {
+                                "type": "string"
+                            },
+                            "route": {
+                                "type": "string"
+                            },
+                            "reason": {
+                                "type": "string"
+                            }
+                        },
+                        "title": "PayerDecisionInput",
+                        "type": "object"
+                    }
+                },
+                "required": [],
+                "title": "Input"
+            },
+            "output": {
+                "type": "object",
+                "properties": {
+                    "agent": {
+                        "default": "CovenantClearanceStrategyAgent",
+                        "title": "Agent",
+                        "type": "string"
+                    },
+                    "framework": {
+                        "default": "LangGraph",
+                        "title": "Framework",
+                        "type": "string"
+                    },
+                    "llm_provider": {
+                        "type": "string"
+                    },
+                    "llm_model": {
+                        "type": "string"
+                    },
+                    "llm_status": {
+                        "enum": [
+                            "not_configured",
+                            "succeeded",
+                            "failed"
+                        ],
+                        "type": "string"
+                    },
+                    "llm_explanation": {
+                        "type": "string"
+                    },
+                    "llm_error": {
+                        "type": "string"
+                    },
+                    "route": {
+                        "enum": [
+                            "missing_evidence",
+                            "clinician_review",
+                            "denial_rescue",
+                            "ready_for_submission"
+                        ],
+                        "title": "Route",
+                        "type": "string"
+                    },
+                    "risk_level": {
+                        "enum": [
+                            "low",
+                            "medium",
+                            "high"
+                        ],
+                        "title": "Risk Level",
+                        "type": "string"
+                    },
+                    "policy_gaps": {
+                        "items": {
+                            "type": "string"
+                        },
+                        "title": "Policy Gaps",
+                        "type": "array"
+                    },
+                    "next_best_action": {
+                        "title": "Next Best Action",
+                        "type": "string"
+                    },
+                    "human_review_required": {
+                        "title": "Human Review Required",
+                        "type": "boolean"
+                    },
+                    "audit_note": {
+                        "title": "Audit Note",
+                        "type": "string"
+                    },
+                    "trace": {
+                        "items": {
+                            "properties": {
+                                "step": {
+                                    "title": "Step",
+                                    "type": "string"
+                                },
+                                "decision": {
+                                    "title": "Decision",
+                                    "type": "string"
+                                }
+                            },
+                            "required": [
+                                "step",
+                                "decision"
+                            ],
+                            "title": "TraceItem",
+                            "type": "object"
+                        },
+                        "title": "Trace",
+                        "type": "array"
+                    }
+                },
+                "required": [
+                    "route",
+                    "risk_level",
+                    "policy_gaps",
+                    "next_best_action",
+                    "human_review_required",
+                    "audit_note",
+                    "trace"
+                ],
+                "title": "Output"
+            },
+            "graph": {
+                "nodes": [
+                    {
+                        "id": "main.py:34",
+                        "name": "main",
+                        "type": "function",
+                        "metadata": {
+                            "file": "main.py"
+                        }
+                    }
+                ],
+                "edges": []
+            }
+        }
+    ]
+}

@@ -1,0 +1,6 @@
+{
+  "ProjectType": "Function",
+  "Name": "covenant-clearance-strategy-agent",
+  "Description": "Native UiPath coded agent for Covenant treatment clearance routing.",
+  "MainFile": null
+}
