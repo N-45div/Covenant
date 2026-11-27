@@ -1,0 +1,9 @@
+# Standby CI spike: asks for a runner label nobody has, so `build` stays queued,
+# which is what a PR looks like during a GitHub Actions outage.
+name: ci
+on: [pull_request]
+jobs:
+  build:
+    runs-on: [self-hosted, standby-spike-runner-that-does-not-exist]
+    steps:
+      - run: echo never runs
